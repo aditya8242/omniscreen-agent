@@ -475,11 +475,23 @@
       <div class="hero-note">
         Free during Public Beta v0.9 &bull; Single-file Windows app (System Tray) + Signed Android APK with Home Screen Widget &bull; <a href="downloads/checksums.txt" style="color: var(--blue); text-decoration: none;">SHA-256 Checksums</a>
       </div>
-      <div style="max-width: 680px; margin: 18px auto 0; background: rgba(255, 159, 10, 0.07); border: 1px solid rgba(255, 159, 10, 0.24); border-radius: 14px; padding: 14px 18px; text-align: left; font-size: 12.5px; color: #D1D1D6; line-height: 1.55;">
-        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--orange); margin-bottom: 6px;">Public Beta Security &amp; Install Notice</div>
-        <div><strong style="color: #FFFFFF;">Windows:</strong> Unsigned Public Beta build (extract the ZIP and run <code style="color: #FFFFFF;">OmniScreen.exe</code>). Windows SmartScreen may ask you to click <strong>More info &rarr; Run anyway</strong> on first launch.</div>
-        <div style="margin-top: 4px;"><strong style="color: #FFFFFF;">Android:</strong> Direct signed APK (not on Google Play yet). Enable <strong>Install unknown apps</strong> when prompted; on Android 13/14, if Usage Access says <em>Restricted setting</em>, open <strong>Settings &rarr; Apps &rarr; OmniScreen &rarr; 3 dots &rarr; Allow restricted settings</strong>.</div>
-        <div style="margin-top: 6px; color: var(--muted);">Verify downloads independently using our <a href="downloads/checksums.txt" style="color: var(--blue); text-decoration: none;">SHA-256 checksums</a> or scan either file on <a href="https://www.virustotal.com" target="_blank" rel="noopener noreferrer" style="color: var(--blue); text-decoration: none;">VirusTotal</a>.</div>
+      <div style="max-width: 720px; margin: 18px auto 0; background: #111114; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 16px 20px; text-align: left; font-size: 12.5px; color: #D1D1D6; line-height: 1.55;">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;">
+          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--green);">Independent VirusTotal Verification &amp; Beta Install Notes</span>
+          <a href="downloads/checksums.txt" style="font-size: 11.5px; font-weight: 600; color: var(--blue); text-decoration: none;">SHA-256 Checksums</a>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin-bottom: 12px;">
+          <a href="https://www.virustotal.com/gui/file/30e6e335686682a15d28e7228a193bab2b833a39e9efb6d905389e5a98c4520f/detection" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; background: rgba(48, 209, 88, 0.08); border: 1px solid rgba(48, 209, 88, 0.25); border-radius: 12px; padding: 10px 12px;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--green);">Android APK: 0 / 66 Clean</div>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">Zero detections across all 66 engines &rarr; View Report</div>
+          </a>
+          <a href="https://www.virustotal.com/gui/file/56bf5033d4c6c7ef6d37837692ed262e3014459efdd1969f479f282de825cb11/detection" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; background: rgba(10, 132, 255, 0.08); border: 1px solid rgba(10, 132, 255, 0.25); border-radius: 12px; padding: 10px 12px;">
+            <div style="font-size: 12px; font-weight: 700; color: #FFFFFF;">Windows .exe: 68 / 71 Clean</div>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">Microsoft, Google, Bitdefender &amp; Malwarebytes clean (3 generic unsigned PyInstaller ML hits) &rarr; View Report</div>
+          </a>
+        </div>
+        <div><strong style="color: #FFFFFF;">Windows First Launch:</strong> Extract the ZIP and double-click <code style="color: #FFFFFF;">OmniScreen.exe</code>. Because this Public Beta is not yet code-signed, Windows SmartScreen may ask you to click <strong>More info &rarr; Run anyway</strong> once.</div>
+        <div style="margin-top: 4px;"><strong style="color: #FFFFFF;">Android First Launch:</strong> Direct signed APK (no Play Store yet). Allow <strong>Install unknown apps</strong> when prompted; on Android 13/14, if Usage Access says <em>Restricted setting</em>, open <strong>Settings &rarr; Apps &rarr; OmniScreen &rarr; 3 dots &rarr; Allow restricted settings</strong>.</div>
       </div>
 
       <!-- Visual Interval Math Explainer -->
