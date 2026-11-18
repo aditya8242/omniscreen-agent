@@ -27,6 +27,7 @@ from hub.database import (
 from hub.overlap import compute_reality
 from hub.dashboard import DASHBOARD_HTML
 from hub.network import get_active_lan_ip
+from hub.paths import get_bundle_assets_dir
 
 _tv_sensor_ref = None
 _lan_ip_override: Optional[str] = None
@@ -157,7 +158,7 @@ class ManualTVPayload(BaseModel):
 
 @app.get("/favicon.svg")
 def get_favicon_svg():
-    logo_path = Path(__file__).resolve().parent.parent / "assets" / "logo.svg"
+    logo_path = get_bundle_assets_dir() / "logo.svg"
     if logo_path.exists():
         return Response(
             content=logo_path.read_text(encoding="utf-8"),

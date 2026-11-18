@@ -7,10 +7,11 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 import requests
 from concurrent.futures import ThreadPoolExecutor
+from hub.paths import is_frozen, get_user_data_dir, get_project_root
 
 logger = logging.getLogger("TVSensor")
 
-DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.json"
+DEFAULT_CONFIG_PATH = (get_user_data_dir() / "config.json") if is_frozen() else (get_project_root() / "config.json")
 
 TV_PORT_PROFILES = {
     8001: "Samsung Smart TV",

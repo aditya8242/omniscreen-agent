@@ -1,9 +1,9 @@
 @echo off
-title Build OmniScreen Windows Standalone Package
+title Build OmniScreen Single-File Windows App
 cd /d "%~dp0"
 
 echo ======================================================================
-echo        OMNISCREEN WINDOWS STANDALONE PACKAGER (PyInstaller)
+echo       OMNISCREEN WINDOWS STANDALONE BUILDER (Single-File .exe)
 echo ======================================================================
 
 if not exist ".venv\Scripts\python.exe" (
@@ -12,21 +12,22 @@ if not exist ".venv\Scripts\python.exe" (
     exit /b 1
 )
 
-echo Checking PyInstaller...
-.venv\Scripts\python.exe -m pip show pyinstaller >nul 2>&1
-if errorlevel 1 (
-    echo Installing PyInstaller into .venv...
-    .venv\Scripts\python.exe -m pip install pyinstaller
-)
+echo Ensuring PyInstaller and pystray are installed...
+.venv\Scripts\python.exe -m pip show pyinstaller >nul 2>&1 || .venv\Scripts\python.exe -m pip install pyinstaller
+.venv\Scripts\python.exe -m pip show pystray >nul 2>&1 || .venv\Scripts\python.exe -m pip install pystray
 
-echo Building OmniScreen.exe with official icon...
+echo Building single-file, zero-terminal dist\OmniScreen.exe...
 .venv\Scripts\pyinstaller.exe ^
     --noconfirm ^
     --clean ^
-    --onedir ^
+    --onefile ^
+    --noconsole ^
     --name "OmniScreen" ^
     --icon "assets\omniscreen.ico" ^
     --add-data "assets\logo.svg;assets" ^
+    --add-data "assets\icon-192.png;assets" ^
+    --hidden-import "pystray._win32" ^
+    --hidden-import "PIL._tkinter_finder" ^
     --hidden-import "uvicorn.logging" ^
     --hidden-import "uvicorn.loops" ^
     --hidden-import "uvicorn.loops.auto" ^
@@ -43,10 +44,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-copy /Y "setup_firewall.bat" "dist\OmniScreen\setup_firewall.bat" >nul
-copy /Y "stop.bat" "dist\OmniScreen\stop.bat" >nul
+echo Generating SHA-256 checksum for dist\OmniScreen.exe...
+powershell -NoProfile -Command "(Get-FileHash 'dist\OmniScreen.exe' -Algorithm SHA256).Hash.ToLower() + '  OmniScreen.exe' | Out-File -Encoding ascii 'dist\OmniScreen.exe.sha256'"
 
 echo.
-echo [SUCCESS] Standalone Windows build ready at: dist\OmniScreen\OmniScreen.exe
-echo Zip the dist\OmniScreen folder (or wrap with Inno Setup) to publish on GitHub Releases.
+echo [SUCCESS] Single-file Windows app ready at: dist\OmniScreen.exe
+echo [CHECKSUM] dist\OmniScreen.exe.sha256
+echo Upload dist\OmniScreen.exe + OmniScreenAgent-release.apk to GitHub Releases.
 pause

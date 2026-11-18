@@ -23,10 +23,68 @@ if IS_WINDOWS:
 
     user32 = ctypes.windll.user32
     kernel32 = ctypes.windll.kernel32
+    kernel32.GetTickCount.restype = c_uint
 else:
     user32 = None
     kernel32 = None
     psutil = None
+
+LOCK_SCREEN_PROCESSES = {
+    "lockapp.exe",
+    "logonui.exe",
+    "screensaver.scr",
+}
+
+FRIENDLY_EXE_NAMES = {
+    "msedge.exe": "Microsoft Edge",
+    "chrome.exe": "Google Chrome",
+    "brave.exe": "Brave",
+    "firefox.exe": "Firefox",
+    "opera.exe": "Opera",
+    "arc.exe": "Arc",
+    "code.exe": "VS Code",
+    "devenv.exe": "Visual Studio",
+    "pycharm64.exe": "PyCharm",
+    "idea64.exe": "IntelliJ IDEA",
+    "windowsterminal.exe": "Terminal",
+    "powershell.exe": "PowerShell",
+    "pwsh.exe": "PowerShell",
+    "cmd.exe": "Command Prompt",
+    "explorer.exe": "File Explorer",
+    "spotify.exe": "Spotify",
+    "discord.exe": "Discord",
+    "whatsapp.exe": "WhatsApp",
+    "telegram.exe": "Telegram",
+    "slack.exe": "Slack",
+    "teams.exe": "Microsoft Teams",
+    "ms-teams.exe": "Microsoft Teams",
+    "zoom.exe": "Zoom",
+    "notion.exe": "Notion",
+    "obsidian.exe": "Obsidian",
+    "vlc.exe": "VLC",
+    "steam.exe": "Steam",
+    "steamwebhelper.exe": "Steam",
+    "winword.exe": "Microsoft Word",
+    "excel.exe": "Microsoft Excel",
+    "powerpnt.exe": "PowerPoint",
+    "notepad.exe": "Notepad",
+    "applicationframehost.exe": "Windows App",
+}
+
+
+def resolve_friendly_exe_name(raw_name: str) -> str:
+    clean = (raw_name or "").strip()
+    if not clean:
+        return "System"
+    low = clean.lower()
+    if low in FRIENDLY_EXE_NAMES:
+        return FRIENDLY_EXE_NAMES[low]
+    if low.endswith(".exe"):
+        clean = clean[:-4]
+    if clean.islower():
+        clean = clean.capitalize()
+    return clean or "System"
+
 
 class Win32ScreenAgent:
     def __init__(
@@ -36,26 +94,27 @@ class Win32ScreenAgent:
         device_name: Optional[str] = None,
         poll_interval: float = 2.0,
         idle_threshold_seconds: float = 120.0,
-        flush_interval_seconds: float = 30.0
+        flush_interval_seconds: float = 15.0
     ):
         self.hub_url = hub_url.rstrip("/")
         hostname = socket.gethostname()
         self.device_id = device_id or f"pc_{hostname.lower()}"
         self.device_name = device_name or f"PC ({hostname})"
         self.device_type = "pc"
-        
+
         self.poll_interval = poll_interval
         self.idle_threshold_sec = idle_threshold_seconds
         self.flush_interval_sec = flush_interval_seconds
-        
+
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
-        
+
         self._current_app: Optional[str] = None
         self._session_start_ts: Optional[float] = None
         self._is_idle: bool = False
-        
+        self._last_tick_ts: Optional[float] = None
+
         self._buffer: List[Dict[str, Any]] = []
         self._last_flush_ts = time.time()
 
@@ -66,30 +125,44 @@ class Win32ScreenAgent:
             info = LASTINPUTINFO()
             info.cbSize = sizeof(LASTINPUTINFO)
             if user32.GetLastInputInfo(byref(info)):
-                millis = kernel32.GetTickCount() - info.dwTime
+                # 32-bit unsigned difference handles uptime > 24.8 days (Fast Startup / Hibernation)
+                millis = (kernel32.GetTickCount() - info.dwTime) & 0xFFFFFFFF
                 return max(0.0, millis / 1000.0)
         except Exception as e:
             logger.debug(f"Error checking idle: {e}")
         return 0.0
 
-    def _get_foreground_app(self) -> str:
+    def _is_workstation_locked(self) -> bool:
+        """Detects Windows Lock Screen (Win+L) so locked PC time is never counted as active."""
+        if not IS_WINDOWS or not user32:
+            return False
+        try:
+            # OpenInputDesktop returns 0 when the secure Lock Screen desktop is active
+            hdesk = user32.OpenInputDesktop(0, False, 0x0001)
+            if not hdesk:
+                return True
+            user32.CloseDesktop(hdesk)
+            return False
+        except Exception:
+            return False
+
+    def _get_foreground_raw_exe(self) -> str:
         if not IS_WINDOWS or not user32 or not psutil:
             return "Windows Workstation"
         try:
             hwnd = user32.GetForegroundWindow()
             if not hwnd:
-                return "Desktop"
+                return ""
             pid = c_ulong()
             user32.GetWindowThreadProcessId(hwnd, byref(pid))
             if pid.value:
                 proc = psutil.Process(pid.value)
-                name = proc.name()
-                return name if name else "System"
+                return proc.name() or ""
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return "System"
         except Exception as e:
             logger.debug(f"Foreground app error: {e}")
-        return "Unknown"
+        return ""
 
     def _record_interval(self, app_name: str, start_ts: float, end_ts: float):
         if end_ts - start_ts < 1.0:
@@ -106,16 +179,19 @@ class Win32ScreenAgent:
     def flush_now(self) -> int:
         now = time.time()
         with self._lock:
-            # If a session is currently active, cut an interval up to now and keep running
             if self._session_start_ts and not self._is_idle and self._current_app:
-                if now > self._session_start_ts + 1.0:
+                # Cap open interval cleanly if a sleep gap hasn't been processed yet
+                cap_end = now
+                if self._last_tick_ts and (now - self._last_tick_ts > 20.0):
+                    cap_end = self._last_tick_ts
+                if cap_end > self._session_start_ts + 1.0:
                     self._buffer.append({
                         "start_ts": round(self._session_start_ts, 2),
-                        "end_ts": round(now, 2),
+                        "end_ts": round(cap_end, 2),
                         "app_name": self._current_app,
                         "category": "workstation"
                     })
-                    self._session_start_ts = now
+                    self._session_start_ts = now if cap_end == now else None
 
             if not self._buffer:
                 return 0
@@ -148,39 +224,61 @@ class Win32ScreenAgent:
 
     def tick(self):
         now = time.time()
-        idle_sec = self._get_idle_seconds()
-        
-        # Check if user entered AFK/idle state
-        if idle_sec >= self.idle_threshold_sec:
-            if not self._is_idle:
-                # User just went idle. Cut off the session at the moment idle began
-                self._is_idle = True
-                actual_idle_start = now - idle_sec
-                if self._session_start_ts and self._current_app and actual_idle_start > self._session_start_ts:
-                    self._record_interval(self._current_app, self._session_start_ts, actual_idle_start)
-                self._session_start_ts = None
-                self._current_app = None
-                logger.info(f"User is idle ({idle_sec:.0f}s). Paused screen logging.")
+
+        # 1. Detect Windows Sleep / Hibernation wall-clock jump (>20s between 2s ticks)
+        sleep_gap_threshold = max(20.0, self.poll_interval * 8.0)
+        if self._last_tick_ts is not None and (now - self._last_tick_ts) > sleep_gap_threshold:
+            pre_sleep_end = self._last_tick_ts
+            logger.info(
+                f"Detected system resume from Sleep/Hibernation "
+                f"(gap: {now - pre_sleep_end:.0f}s). Closing pre-sleep session cleanly."
+            )
+            if self._session_start_ts and self._current_app and pre_sleep_end > self._session_start_ts:
+                self._record_interval(self._current_app, self._session_start_ts, pre_sleep_end)
+            self._session_start_ts = None
+            self._current_app = None
+            self._is_idle = False
+            self._last_tick_ts = now
+            self.flush_now()
             return
 
-        # User is active
+        self._last_tick_ts = now
+
+        # 2. Check Windows Lock Screen or AFK idle threshold
+        raw_exe = self._get_foreground_raw_exe()
+        is_locked = self._is_workstation_locked() or (raw_exe.lower() in LOCK_SCREEN_PROCESSES)
+        idle_sec = self._get_idle_seconds()
+
+        if is_locked or idle_sec >= self.idle_threshold_sec:
+            if not self._is_idle:
+                self._is_idle = True
+                cut_ts = now if is_locked else max(self._session_start_ts or now, now - idle_sec)
+                if self._session_start_ts and self._current_app and cut_ts > self._session_start_ts:
+                    self._record_interval(self._current_app, self._session_start_ts, cut_ts)
+                self._session_start_ts = None
+                self._current_app = None
+                reason = "workstation locked" if is_locked else f"idle {idle_sec:.0f}s"
+                logger.info(f"Paused screen logging ({reason}).")
+                self.flush_now()
+            return
+
+        # 3. User is active
         if self._is_idle:
             self._is_idle = False
-            logger.info("User input detected. Resuming active tracking.")
+            logger.info("User activity detected. Resuming active tracking.")
 
-        active_app = self._get_foreground_app()
-        
+        active_app = resolve_friendly_exe_name(raw_exe) if raw_exe else "Desktop"
+
         if self._current_app is None:
             self._current_app = active_app
             self._session_start_ts = now
         elif active_app != self._current_app:
-            # Active window changed, record previous app interval
             if self._session_start_ts:
                 self._record_interval(self._current_app, self._session_start_ts, now)
             self._current_app = active_app
             self._session_start_ts = now
 
-        # Periodic background flush
+        # 4. Periodic durable background flush every 15s (survives unexpected power loss)
         if now - self._last_flush_ts >= self.flush_interval_sec:
             self.flush_now()
 
@@ -204,9 +302,11 @@ class Win32ScreenAgent:
     def stop(self):
         self._running = False
         if self._thread:
-            self._thread.join(timeout=2.0)
+            self._thread.join(timeout=2.5)
+
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [Win32Agent] %(message)s")
     agent = Win32ScreenAgent()
     try:
         agent.run_loop()

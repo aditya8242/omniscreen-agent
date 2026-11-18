@@ -463,16 +463,15 @@
         Your phone counts in isolation. Your PC counts in isolation. OmniScreen uses exact timestamp interval math on your local Wi-Fi to reveal your True Combined Exposure and Second-Screening Index — with zero cloud accounts.
       </p>
       <div class="cta-row" id="download">
-        <!-- Update these 2 href links to your public GitHub Releases URL when publishing -->
-        <a class="btn btn-primary" href="https://github.com/aditya8242/omniscreen-releases/releases/latest">
-          Download for Windows (Beta)
+        <a class="btn btn-primary" href="https://github.com/aditya8242/omniscreen-releases/releases/latest/download/OmniScreen.exe">
+          Download OmniScreen.exe (Windows)
         </a>
-        <a class="btn btn-secondary" href="https://github.com/aditya8242/omniscreen-releases/releases/latest">
+        <a class="btn btn-secondary" href="https://github.com/aditya8242/omniscreen-releases/releases/latest/download/OmniScreenAgent-release.apk">
           Download Android APK (Direct)
         </a>
       </div>
       <div class="hero-note">
-        Free during Public Beta &bull; Windows 10/11 + Android 8–15 &bull; Direct download (no Play Store account required)
+        Free during Public Beta v0.9 &bull; Single-file Windows app (System Tray) + Signed Android APK with Home Screen Widget &bull; <a href="https://github.com/aditya8242/omniscreen-releases/releases/latest" style="color: var(--blue); text-decoration: none;">View Checksums &amp; Release Notes</a>
       </div>
 
       <!-- Visual Interval Math Explainer -->
@@ -527,8 +526,8 @@
       <div class="steps-grid">
         <div class="card">
           <div class="step-num">1</div>
-          <h3>Open OmniScreen on Windows</h3>
-          <p>Launch OmniScreen on your PC. It tracks active foreground PC time locally in SQLite and opens your Apple-style desktop dashboard.</p>
+          <h3>Run OmniScreen.exe on Windows</h3>
+          <p>Double-click OmniScreen.exe. It opens your desktop dashboard and runs quietly in the Windows System Tray (zero terminal window), tracking accurately across sleep, hibernation, and reboots.</p>
         </div>
         <div class="card">
           <div class="step-num">2</div>
@@ -563,7 +562,7 @@
             <tr>
               <td><strong>Windows 10 / 11</strong></td>
               <td><span class="tag tag-green">Public Beta</span></td>
-              <td>Tracks active foreground apps and idle time locally. Must be running while you use your PC (does not read PC history retroactively when closed). Unsigned beta builds may show Windows SmartScreen ("More info -> Run anyway").</td>
+              <td>Runs silently in the System Tray with optional Start-with-Windows auto-launch. Detects sleep, hibernation, lock screen, and idle gaps cleanly. Stores data persistently in %LOCALAPPDATA%\OmniScreen. Unsigned beta builds may show Windows SmartScreen ("More info -> Run anyway").</td>
             </tr>
             <tr>
               <td><strong>Android 8 – 15</strong></td>

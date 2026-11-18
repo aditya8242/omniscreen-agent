@@ -4,8 +4,9 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+from hub.paths import get_user_data_dir
 
-DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "omniscreen.db"
+DEFAULT_DB_PATH = get_user_data_dir() / "omniscreen.db"
 
 def get_db_path(custom_path: Optional[str] = None) -> Path:
     if custom_path:
