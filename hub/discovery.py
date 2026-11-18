@@ -38,7 +38,7 @@ class UDPDiscoveryResponder:
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._socket.bind(("0.0.0.0", self.discovery_port))
-            self._socket.settimeout(2.0)
+            self._socket.settimeout(5.0)
         except Exception as e:
             logger.error(f"Failed to bind UDP discovery port {self.discovery_port}: {e}")
             self._running = False

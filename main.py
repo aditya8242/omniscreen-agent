@@ -156,6 +156,12 @@ def main():
     # 1. Initialize persistent SQLite storage & optional first-run Windows startup entry
     init_db()
     ensure_default_autostart_once()
+    if sys.platform == "win32":
+        try:
+            import psutil
+            psutil.Process(os.getpid()).nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+        except Exception:
+            pass
     logger.info(f"Local SQLite Reality Hub initialized in {get_user_data_dir()}")
 
     set_lan_ip(None)

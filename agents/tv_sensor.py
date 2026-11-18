@@ -60,12 +60,30 @@ class SmartTVSensor:
         self.check_interval_sec = check_interval_seconds
         
         self._running = False
+        self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
-        
+        self._http = requests.Session()
+        self._cached_cfg: Optional[Dict[str, Any]] = None
+        self._cached_cfg_mtime: float = -1.0
+
         # State tracking: device_id -> {"device_name": str, "ip_address": str, "is_online": bool, "session_start": float, "last_seen": float}
         self._tv_states: Dict[str, Dict[str, Any]] = {}
         self._completed_sessions: List[Dict[str, Any]] = []
+
+    def _get_cached_config(self) -> Dict[str, Any]:
+        try:
+            if self.config_path.exists():
+                mtime = self.config_path.stat().st_mtime
+                if self._cached_cfg is not None and mtime == self._cached_cfg_mtime:
+                    return self._cached_cfg
+                self._cached_cfg = load_or_create_config(self.config_path)
+                self._cached_cfg_mtime = mtime
+                return self._cached_cfg
+        except Exception:
+            pass
+        self._cached_cfg = load_or_create_config(self.config_path)
+        return self._cached_cfg
 
     def _is_host_reachable(self, ip: str, ports: List[int], timeout: float = 0.8) -> bool:
         for port in ports:
@@ -78,9 +96,11 @@ class SmartTVSensor:
                 continue
         return False
 
-    def check_tvs(self):
-        config = load_or_create_config(self.config_path)
+    def check_tvs(self) -> int:
+        config = self._get_cached_config()
         tvs = config.get("smart_tvs", [])
+        if not tvs:
+            return 0
         now = time.time()
         
         for tv in tvs:
@@ -132,6 +152,8 @@ class SmartTVSensor:
                             })
                             logger.info(f"Smart TV powered OFF: {dev_name} (Duration: {last - start:.0f}s)")
                         state["session_start"] = None
+
+        return len(tvs)
 
     def _ssdp_discover_tvs(self, timeout: float = 1.6) -> List[Dict[str, Any]]:
         """
@@ -330,7 +352,7 @@ class SmartTVSensor:
         total_synced = 0
         for did, payload in grouped.items():
             try:
-                res = requests.post(f"{self.hub_url}/api/sync", json=payload, timeout=2.5)
+                res = self._http.post(f"{self.hub_url}/api/sync", json=payload, timeout=2.5)
                 if res.status_code == 200:
                     total_synced += len(payload["sessions"])
             except Exception as e:
@@ -341,13 +363,20 @@ class SmartTVSensor:
     def run_loop(self):
         logger.info(f"Smart TV Sensor started. Checking network presence every {self.check_interval_sec}s")
         self._running = True
+        self._stop_event.clear()
         try:
-            while self._running:
-                self.check_tvs()
+            while self._running and not self._stop_event.is_set():
+                tv_count = self.check_tvs()
                 self.flush_now()
-                time.sleep(self.check_interval_sec)
+                # Sleep longer (60s) when no Smart TVs are configured to avoid needless wakeups
+                wait_sec = self.check_interval_sec if tv_count else max(60.0, self.check_interval_sec)
+                self._stop_event.wait(wait_sec)
         finally:
             self.flush_now()
+            try:
+                self._http.close()
+            except Exception:
+                pass
             logger.info("Smart TV Sensor stopped.")
 
     def start_background(self):
@@ -358,5 +387,6 @@ class SmartTVSensor:
 
     def stop(self):
         self._running = False
+        self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=1.5)

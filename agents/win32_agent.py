@@ -93,9 +93,9 @@ class Win32ScreenAgent:
         hub_url: str = "http://127.0.0.1:8765",
         device_id: Optional[str] = None,
         device_name: Optional[str] = None,
-        poll_interval: float = 2.0,
+        poll_interval: float = 3.0,
         idle_threshold_seconds: float = 300.0,
-        flush_interval_seconds: float = 15.0
+        flush_interval_seconds: float = 60.0
     ):
         self.hub_url = hub_url.rstrip("/")
         hostname = socket.gethostname()
@@ -108,13 +108,20 @@ class Win32ScreenAgent:
         self.flush_interval_sec = flush_interval_seconds
 
         self._running = False
+        self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
+        self._http = requests.Session()
 
         self._current_app: Optional[str] = None
         self._session_start_ts: Optional[float] = None
         self._is_idle: bool = False
         self._last_tick_ts: Optional[float] = None
+
+        # Foreground process cache avoids repeated OpenProcess syscalls while staying in one window
+        self._last_hwnd: Optional[int] = None
+        self._last_pid: Optional[int] = None
+        self._last_raw_exe: str = ""
 
         self._buffer: List[Dict[str, Any]] = []
         self._last_flush_ts = time.time()
@@ -166,15 +173,31 @@ class Win32ScreenAgent:
         try:
             hwnd = user32.GetForegroundWindow()
             if not hwnd:
+                self._last_hwnd = None
+                self._last_pid = None
+                self._last_raw_exe = ""
                 return ""
-            title = self._get_foreground_window_title(hwnd)
-            if "omniscreen reality hub" in title.lower():
-                return "OmniScreen"
             pid = c_ulong()
             user32.GetWindowThreadProcessId(hwnd, byref(pid))
-            if pid.value:
-                proc = psutil.Process(pid.value)
-                return proc.name() or ""
+            pid_val = pid.value
+
+            # Fast path: same window & PID — reuse cached executable without OpenProcess syscall
+            if hwnd == self._last_hwnd and pid_val == self._last_pid and self._last_raw_exe:
+                return self._last_raw_exe
+
+            title = self._get_foreground_window_title(hwnd)
+            if "omniscreen reality hub" in title.lower():
+                raw = "OmniScreen"
+            elif pid_val:
+                proc = psutil.Process(pid_val)
+                raw = proc.name() or ""
+            else:
+                raw = ""
+
+            self._last_hwnd = hwnd
+            self._last_pid = pid_val
+            self._last_raw_exe = raw
+            return raw
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return "System"
         except Exception as e:
@@ -184,13 +207,23 @@ class Win32ScreenAgent:
     def _record_interval(self, app_name: str, start_ts: float, end_ts: float):
         if end_ts - start_ts < 1.0:
             return
+        r_start = round(start_ts, 2)
+        r_end = round(end_ts, 2)
         with self._lock:
-            self._buffer.append({
-                "start_ts": round(start_ts, 2),
-                "end_ts": round(end_ts, 2),
-                "app_name": app_name,
-                "category": "workstation"
-            })
+            # Coalesce contiguous same-app slices (<=2s gap) to keep SQLite compact
+            if (
+                self._buffer
+                and self._buffer[-1]["app_name"] == app_name
+                and r_start - self._buffer[-1]["end_ts"] <= 2.0
+            ):
+                self._buffer[-1]["end_ts"] = max(self._buffer[-1]["end_ts"], r_end)
+            else:
+                self._buffer.append({
+                    "start_ts": r_start,
+                    "end_ts": r_end,
+                    "app_name": app_name,
+                    "category": "workstation"
+                })
             logger.debug(f"Logged interval: {app_name} ({end_ts - start_ts:.1f}s)")
 
     def flush_now(self) -> int:
@@ -225,7 +258,7 @@ class Win32ScreenAgent:
 
         try:
             url = f"{self.hub_url}/api/sync"
-            res = requests.post(url, json=payload, timeout=3.0)
+            res = self._http.post(url, json=payload, timeout=3.0)
             if res.status_code == 200:
                 logger.info(f"Flushed {len(to_send)} sessions to Hub successfully.")
                 return len(to_send)
@@ -261,10 +294,14 @@ class Win32ScreenAgent:
 
         self._last_tick_ts = now
 
-        # 2. Check Windows Lock Screen or AFK idle threshold
-        raw_exe = self._get_foreground_raw_exe()
-        is_locked = self._is_workstation_locked() or (raw_exe.lower() in LOCK_SCREEN_PROCESSES)
+        # 2. Fast idle/lock check BEFORE expensive foreground process inspection
         idle_sec = self._get_idle_seconds()
+        is_locked = self._is_workstation_locked()
+        raw_exe = ""
+        if not is_locked and idle_sec < self.idle_threshold_sec:
+            raw_exe = self._get_foreground_raw_exe()
+            if raw_exe.lower() in LOCK_SCREEN_PROCESSES:
+                is_locked = True
 
         if is_locked or idle_sec >= self.idle_threshold_sec:
             if not self._is_idle:
@@ -302,12 +339,17 @@ class Win32ScreenAgent:
     def run_loop(self):
         logger.info(f"Win32 Screen Agent started for device: {self.device_name} (Polling every {self.poll_interval}s)")
         self._running = True
+        self._stop_event.clear()
         try:
-            while self._running:
+            while self._running and not self._stop_event.is_set():
                 self.tick()
-                time.sleep(self.poll_interval)
+                self._stop_event.wait(self.poll_interval)
         finally:
             self.flush_now()
+            try:
+                self._http.close()
+            except Exception:
+                pass
             logger.info("Win32 Screen Agent stopped.")
 
     def start_background(self):
@@ -318,6 +360,7 @@ class Win32ScreenAgent:
 
     def stop(self):
         self._running = False
+        self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=2.5)
 

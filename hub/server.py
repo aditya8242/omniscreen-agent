@@ -381,16 +381,17 @@ def sync_device_sessions(payload: SyncPayload):
             sessions=session_dicts,
             replace_day_start_ts=payload.replace_day_start_ts
         )
-        # Bidirectional on-demand snapshot: return today's full cross-device reality
-        # so the syncing device immediately displays True Combined Exposure & all devices.
+        # Bidirectional on-demand snapshot: only compute full cross-device reality
+        # for mobile clients (PC/TV background flushes discard the response body).
         reality_snapshot = None
-        try:
-            day_start_ts, day_end_ts, date_str = get_day_boundaries(None)
-            today_sessions = get_sessions_for_day(date_str)
-            reality_snapshot = compute_reality(today_sessions, day_start_ts, day_end_ts, date_str)
-            reality_snapshot["pc_name"] = get_pc_display_name()
-        except Exception:
-            reality_snapshot = None
+        if payload.device_type in ("android", "ios"):
+            try:
+                day_start_ts, day_end_ts, date_str = get_day_boundaries(None)
+                today_sessions = get_sessions_for_day(date_str)
+                reality_snapshot = compute_reality(today_sessions, day_start_ts, day_end_ts, date_str)
+                reality_snapshot["pc_name"] = get_pc_display_name()
+            except Exception:
+                reality_snapshot = None
 
         return {
             "status": "ok",
