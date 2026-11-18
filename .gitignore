@@ -23,6 +23,7 @@ build_download/
 *.spec
 *.apk
 *.sha256
+website/downloads/
 
 # Android build outputs
 android_agent/.gradle/

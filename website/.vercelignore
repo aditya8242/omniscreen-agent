@@ -1,0 +1,3 @@
+# Keep downloads/ included when deploying website/ directly via Vercel CLI
+*.log
+.DS_Store
