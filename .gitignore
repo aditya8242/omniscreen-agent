@@ -24,5 +24,10 @@ build_download/
 *.apk
 *.sha256
 
-# Tracked in its own separate repository (aditya8242/omniscreen-agent)
-android_agent/
+# Android build outputs
+android_agent/.gradle/
+android_agent/build/
+android_agent/app/build/
+android_agent/local.properties
+android_agent/.idea/
+android_agent/*.iml

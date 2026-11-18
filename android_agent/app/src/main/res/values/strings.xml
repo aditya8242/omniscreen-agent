@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">OmniScreen</string>
+    <string name="widget_description">Combined cross-device screen exposure and today's phone screen time at a glance.</string>
+</resources>

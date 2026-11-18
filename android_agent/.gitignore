@@ -1,0 +1,14 @@
+# Signing keys & secrets (NEVER commit)
+*.jks
+*.keystore
+keystore.properties
+local.properties
+
+# Build outputs
+.gradle/
+build/
+app/build/
+*.apk
+*.sha256
+.idea/
+*.iml
