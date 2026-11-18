@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A1A22"/>
+      <stop offset="100%" stop-color="#070709"/>
+    </linearGradient>
+    <linearGradient id="leftRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38A1FF"/>
+      <stop offset="100%" stop-color="#0A84FF"/>
+    </linearGradient>
+    <linearGradient id="rightRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D580FF"/>
+      <stop offset="100%" stop-color="#BF5AF2"/>
+    </linearGradient>
+    <linearGradient id="overlapGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#30D158"/>
+      <stop offset="100%" stop-color="#00C7BE"/>
+    </linearGradient>
+    <clipPath id="leftClip">
+      <circle cx="204" cy="256" r="118"/>
+    </clipPath>
+  </defs>
+
+  <!-- Apple Squircle Base -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bgGrad)" stroke="rgba(255,255,255,0.12)" stroke-width="6"/>
+
+  <!-- Left Screen Ring (Primary / PC) -->
+  <circle cx="204" cy="256" r="118" fill="none" stroke="url(#leftRing)" stroke-width="34"/>
+
+  <!-- Right Screen Ring (Mobile) -->
+  <circle cx="308" cy="256" r="118" fill="none" stroke="url(#rightRing)" stroke-width="34"/>
+
+  <!-- Illuminated Intersection Core (Second-Screening / Reality Focus) -->
+  <circle cx="308" cy="256" r="118" fill="url(#overlapGlow)" fill-opacity="0.28" clip-path="url(#leftClip)"/>
+  <circle cx="256" cy="256" r="24" fill="url(#overlapGlow)"/>
+</svg>

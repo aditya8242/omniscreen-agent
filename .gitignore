@@ -1,0 +1,28 @@
+# Secrets & signing keys (NEVER commit)
+*.jks
+*.keystore
+keystore.properties
+.env
+*.pem
+*.key
+
+# Local databases & user profiles (personal screen time data)
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Python & build artifacts
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+build/
+dist/
+build_download/
+*.spec
+*.apk
+*.sha256
+
+# Tracked in its own separate repository (aditya8242/omniscreen-agent)
+android_agent/
