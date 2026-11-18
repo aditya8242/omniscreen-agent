@@ -869,6 +869,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     let pendingDeleteDeviceId = null;
     let pendingRenameDeviceId = null;
     let currentLanIp = "127.0.0.1:8765";
+    let localPcId = "";
     let devicesById = {};
     let toastTimer = null;
 
@@ -978,6 +979,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       const offset = 452 - (ratio * 350);
       document.getElementById("heroDialProgress").style.strokeDashoffset = offset;
 
+      if (data.local_pc_id) {
+        localPcId = data.local_pc_id;
+      }
+
       renderDevices(data.devices || []);
     }
 
@@ -1002,13 +1007,18 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           `<span class="app-pill">${escapeHtml(a.app_name)} (${escapeHtml(a.formatted)})</span>`
         ).join("");
 
+        const isThisPc = (type === "pc" && localPcId && dev.device_id === localPcId);
+        const thisPcBadge = isThisPc
+          ? `<span style="margin-left: 6px; font-size: 10px; font-weight: 700; color: var(--blue); background: rgba(10, 132, 255, 0.14); padding: 2px 7px; border-radius: 999px; vertical-align: middle;">This PC</span>`
+          : "";
+
         return `
           <div class="device-row">
             <div class="device-top-line">
               <div class="device-name-wrap">
                 <div class="device-icon-badge ${badgeClass}">${icon}</div>
                 <div>
-                  <div class="device-name">${escapeHtml(dev.device_name)}</div>
+                  <div class="device-name">${escapeHtml(dev.device_name)}${thisPcBadge}</div>
                   <div style="font-size: 11px; color: var(--text-muted);">${escapeHtml(type.toUpperCase())}</div>
                 </div>
               </div>

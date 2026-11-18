@@ -412,6 +412,7 @@ def get_reality(date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"
         sessions = get_sessions_for_day(date_str)
         reality = compute_reality(sessions, day_start_ts, day_end_ts, date_str)
         reality["lan_ip"] = get_lan_ip()
+        reality["local_pc_id"] = f"pc_{(socket.gethostname() or 'pc').lower()}"
         return reality
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Could not compute reality metrics: {str(e)}")

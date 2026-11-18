@@ -43,6 +43,7 @@ FRIENDLY_EXE_NAMES = {
     "opera.exe": "Opera",
     "arc.exe": "Arc",
     "code.exe": "VS Code",
+    "antigravity.exe": "Antigravity",
     "devenv.exe": "Visual Studio",
     "pycharm64.exe": "PyCharm",
     "idea64.exe": "IntelliJ IDEA",
@@ -93,13 +94,13 @@ class Win32ScreenAgent:
         device_id: Optional[str] = None,
         device_name: Optional[str] = None,
         poll_interval: float = 2.0,
-        idle_threshold_seconds: float = 120.0,
+        idle_threshold_seconds: float = 300.0,
         flush_interval_seconds: float = 15.0
     ):
         self.hub_url = hub_url.rstrip("/")
         hostname = socket.gethostname()
         self.device_id = device_id or f"pc_{hostname.lower()}"
-        self.device_name = device_name or f"PC ({hostname})"
+        self.device_name = device_name or hostname
         self.device_type = "pc"
 
         self.poll_interval = poll_interval
@@ -146,6 +147,19 @@ class Win32ScreenAgent:
         except Exception:
             return False
 
+    def _get_foreground_window_title(self, hwnd) -> str:
+        if not IS_WINDOWS or not user32 or not hwnd:
+            return ""
+        try:
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length <= 0:
+                return ""
+            buf = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buf, length + 1)
+            return buf.value or ""
+        except Exception:
+            return ""
+
     def _get_foreground_raw_exe(self) -> str:
         if not IS_WINDOWS or not user32 or not psutil:
             return "Windows Workstation"
@@ -153,6 +167,9 @@ class Win32ScreenAgent:
             hwnd = user32.GetForegroundWindow()
             if not hwnd:
                 return ""
+            title = self._get_foreground_window_title(hwnd)
+            if "omniscreen reality hub" in title.lower():
+                return "OmniScreen"
             pid = c_ulong()
             user32.GetWindowThreadProcessId(hwnd, byref(pid))
             if pid.value:

@@ -1,5 +1,33 @@
 from typing import List, Tuple, Dict, Any
 
+_LEGACY_EXE_MAP = {
+    "msedge.exe": "Microsoft Edge",
+    "chrome.exe": "Google Chrome",
+    "brave.exe": "Brave",
+    "firefox.exe": "Firefox",
+    "code.exe": "VS Code",
+    "antigravity.exe": "Antigravity",
+    "windowsterminal.exe": "Terminal",
+    "powershell.exe": "PowerShell",
+    "pwsh.exe": "PowerShell",
+    "cmd.exe": "Command Prompt",
+    "explorer.exe": "File Explorer",
+    "spotify.exe": "Spotify",
+    "discord.exe": "Discord",
+    "whatsapp.exe": "WhatsApp",
+}
+
+def _clean_app_display_name(app_name: str, dev_type: str) -> str:
+    clean = (app_name or "Unknown").strip()
+    if dev_type == "pc":
+        low = clean.lower()
+        if low in _LEGACY_EXE_MAP:
+            return _LEGACY_EXE_MAP[low]
+        if low.endswith(".exe"):
+            stripped = clean[:-4]
+            return stripped.capitalize() if stripped.islower() else stripped
+    return clean or "Unknown"
+
 def format_duration(seconds: float) -> str:
     s = max(0.0, float(seconds or 0.0))
     if s < 30.0:
@@ -88,7 +116,7 @@ def compute_reality(
         dev_id = str(s["device_id"])
         dev_type = str(s.get("device_type", "pc")).lower()
         dev_name = str(s.get("device_name", dev_id))
-        app_name = str(s.get("app_name", "Unknown"))
+        app_name = _clean_app_display_name(str(s.get("app_name", "Unknown")), dev_type)
         
         if dev_id not in device_data:
             device_data[dev_id] = {
