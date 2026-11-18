@@ -1,0 +1,4 @@
+OmniScreen Public Beta v0.9 - SHA-256 Checksums
+
+56bf5033d4c6c7ef6d37837692ed262e3014459efdd1969f479f282de825cb11  OmniScreen.exe
+30e6e335686682a15d28e7228a193bab2b833a39e9efb6d905389e5a98c4520f  OmniScreenAgent-release.apk
