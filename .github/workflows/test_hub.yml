@@ -24,4 +24,4 @@ jobs:
           pip install -r requirements.txt pytest httpx
 
       - name: Run unit, integration, and security tests
-        run: pytest tests -v
+        run: python -m pytest tests -v
