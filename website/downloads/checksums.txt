@@ -1,4 +1,8 @@
 OmniScreen Public Beta v0.9 - SHA-256 Checksums
 
-56bf5033d4c6c7ef6d37837692ed262e3014459efdd1969f479f282de825cb11  OmniScreen.exe
+31ee1704f6fc2def2184649ee8ac274e10c7d046ed7a504d2b3ce79d5a51c185  OmniScreen-Windows-Beta.zip
+56bf5033d4c6c7ef6d37837692ed262e3014459efdd1969f479f282de825cb11  OmniScreen.exe (inside ZIP)
 30e6e335686682a15d28e7228a193bab2b833a39e9efb6d905389e5a98c4520f  OmniScreenAgent-release.apk
+
+Verify on Windows PowerShell:
+  Get-FileHash OmniScreen-Windows-Beta.zip -Algorithm SHA256
