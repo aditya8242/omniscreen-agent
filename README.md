@@ -179,6 +179,12 @@ Every binary distributed in releases is cryptographically hashed and scanned acr
 
 ---
 
+## Contributing
+
+Contributions are welcome! Please see [`CONTRIBUTING.md`](CONTRIBUTING.md) for local environment setup, testing, and pull request procedures.
+
+---
+
 ## License
 
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.  
