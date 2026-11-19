@@ -1,5 +1,5 @@
-# OmniScreen Reality Hub - Apple macOS Sequoia & iOS Screen Time Design
-# Designed strictly to Apple Human Interface Guidelines standards (zero emojis)
+# OmniScreen Reality Hub - Obsidian Instrument Desktop Dashboard
+# Designed strictly to Obsidian Instrument & Apple Human Interface Guidelines standards (zero emojis)
 
 DASHBOARD_HTML = """<!DOCTYPE html>
 <html lang="en">
@@ -11,20 +11,29 @@ DASHBOARD_HTML = """<!DOCTYPE html>
   <style>
     :root {
       --bg: #000000;
-      --card-bg: #141417;
-      --card-secondary: #1C1C20;
+      --card-bg: rgba(20, 20, 24, 0.78);
+      --card-secondary: rgba(28, 28, 34, 0.85);
       --card-border: rgba(255, 255, 255, 0.08);
-      --card-hover: rgba(255, 255, 255, 0.04);
+      --card-border-hover: rgba(255, 255, 255, 0.16);
+      --card-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+      --card-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.10);
+      --card-shadow-hover: 0 16px 44px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.16);
       --text-main: #FFFFFF;
       --text-secondary: #8E8E93;
       --text-muted: #636366;
       --blue: #0A84FF;
       --blue-hover: #0071E3;
+      --blue-glow: rgba(10, 132, 255, 0.28);
       --green: #30D158;
+      --green-glow: rgba(48, 209, 88, 0.25);
       --orange: #FF9F0A;
+      --orange-glow: rgba(255, 159, 10, 0.25);
       --purple: #BF5AF2;
+      --purple-glow: rgba(191, 90, 242, 0.25);
       --red: #FF453A;
-      --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     * {
@@ -36,6 +45,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
     body {
       background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 480px 260px at 50% 0%, rgba(10, 132, 255, 0.09) 0%, transparent 80%),
+        radial-gradient(ellipse 360px 180px at 50% 180px, rgba(191, 90, 242, 0.04) 0%, transparent 80%);
+      background-repeat: no-repeat;
       color: var(--text-main);
       font-family: var(--font-family);
       min-height: 100vh;
@@ -44,6 +57,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       align-items: center;
       padding: 24px 16px 40px;
       user-select: none;
+      overflow-x: hidden;
     }
 
     .container {
@@ -54,7 +68,13 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       gap: 16px;
     }
 
-    /* Apple Navigation Bar */
+    /* Tabular Numerals Utility */
+    .tabular-num {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+    }
+
+    /* Navigation Bar */
     .nav-bar {
       display: flex;
       justify-content: space-between;
@@ -69,14 +89,14 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     }
 
     .brand-icon {
-      width: 30px;
-      height: 30px;
-      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 10px rgba(10, 132, 255, 0.28);
+      box-shadow: 0 2px 12px rgba(10, 132, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
 
     .nav-title {
@@ -97,7 +117,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       padding: 5px 12px;
       border-radius: 999px;
       letter-spacing: 0.2px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
       transition: all 0.2s ease;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
     }
 
     .live-status-pill.offline {
@@ -126,13 +149,15 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       50% { opacity: 0.35; transform: scale(0.85); }
     }
 
-    /* Apple Cards */
+    /* Cards */
     .card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 20px;
       padding: 20px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       position: relative;
     }
 
@@ -148,17 +173,18 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     /* Hero Gauge Card */
     .hero-card {
       text-align: center;
-      padding: 24px 20px 22px;
+      padding: 26px 20px 24px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      overflow: hidden;
     }
 
     .hero-dial-wrap {
       position: relative;
-      width: 176px;
-      height: 176px;
-      margin: 8px auto 12px;
+      width: 180px;
+      height: 180px;
+      margin: 10px auto 14px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -166,8 +192,9 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
     .hero-dial-svg {
       transform: rotate(-90deg);
-      width: 176px;
-      height: 176px;
+      width: 180px;
+      height: 180px;
+      filter: drop-shadow(0 0 16px rgba(10, 132, 255, 0.24));
     }
 
     .hero-dial-bg {
@@ -183,7 +210,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       stroke-linecap: round;
       stroke-dasharray: 452;
       stroke-dashoffset: 452;
-      transition: stroke-dashoffset 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: stroke-dashoffset 0.9s var(--ease-spring);
     }
 
     .hero-time-center {
@@ -192,13 +219,18 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      text-align: center;
     }
 
     .hero-time-val {
-      font-size: 36px;
+      font-size: 38px;
       font-weight: 800;
-      letter-spacing: -1px;
+      letter-spacing: -1.2px;
       line-height: 1;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      color: #FFFFFF;
+      text-shadow: 0 0 24px rgba(255, 255, 255, 0.16);
     }
 
     .hero-sub-text {
@@ -217,23 +249,34 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     .metric-box {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 16px;
+      border-radius: 18px;
+      padding: 16px 18px;
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      transition: border-color 0.2s ease, transform 0.2s var(--ease-spring);
+    }
+
+    .metric-box:hover {
+      border-color: var(--card-border-hover);
+      transform: translateY(-1px);
     }
 
     .metric-box-title {
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
       color: var(--text-muted);
-      letter-spacing: 0.6px;
+      letter-spacing: 0.8px;
       text-transform: uppercase;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
 
     .metric-box-value {
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 700;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.6px;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
     }
 
     .text-orange { color: var(--orange); }
@@ -245,11 +288,14 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     .ssi-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 16px;
+      border-radius: 18px;
       padding: 16px 18px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
     }
 
     .ssi-top-row {
@@ -270,16 +316,20 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     .ssi-badge {
       font-size: 11px;
       font-weight: 700;
-      padding: 3px 10px;
+      padding: 4px 11px;
       border-radius: 999px;
       letter-spacing: 0.2px;
       white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      border: 1px solid currentColor;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     .ssi-desc {
       font-size: 12px;
       color: var(--text-secondary);
-      line-height: 1.4;
+      line-height: 1.45;
     }
 
     /* Section Headers */
@@ -311,9 +361,11 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       text-decoration: none;
       font-weight: 600;
       cursor: pointer;
+      transition: color 0.15s ease;
     }
 
     .text-action-link:hover {
+      color: #38A2FF;
       text-decoration: underline;
     }
 
@@ -331,13 +383,18 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      transition: background 0.15s, border-color 0.15s;
+      gap: 10px;
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-spring);
     }
 
     .device-row:hover {
-      background: rgba(255, 255, 255, 0.02);
-      border-color: rgba(255, 255, 255, 0.12);
+      background: rgba(26, 26, 32, 0.85);
+      border-color: var(--card-border-hover);
+      transform: translateY(-1.5px);
+      box-shadow: var(--card-shadow-hover);
     }
 
     .device-top-line {
@@ -349,17 +406,19 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     .device-name-wrap {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 11px;
     }
 
     .device-icon-badge {
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
     }
 
     .badge-pc { background: rgba(10, 132, 255, 0.15); color: var(--blue); }
@@ -376,6 +435,8 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       font-size: 16px;
       font-weight: 700;
       letter-spacing: -0.3px;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
     }
 
     .device-apps-pills {
@@ -386,12 +447,15 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     }
 
     .app-pill {
-      background: rgba(255, 255, 255, 0.06);
-      padding: 3px 8px;
-      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 3px 9px;
+      border-radius: 7px;
       font-size: 11px;
       color: var(--text-secondary);
       font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
     }
 
     .device-meta-actions {
@@ -401,31 +465,35 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       font-size: 11px;
       color: var(--text-muted);
       margin-top: 4px;
-      padding-top: 6px;
-      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
     }
 
     .btn-meta {
-      background: none;
-      border: none;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       color: var(--text-secondary);
       font-size: 11px;
       font-weight: 600;
       cursor: pointer;
-      padding: 4px 9px;
-      border-radius: 6px;
+      padding: 4px 10px;
+      border-radius: 7px;
       font-family: inherit;
-      transition: background 0.15s, color 0.15s;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
 
     .btn-meta:hover {
       color: var(--text-main);
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.10);
+      border-color: rgba(255, 255, 255, 0.14);
     }
 
     .btn-meta.btn-danger:hover {
       color: var(--red);
-      background: rgba(255, 69, 58, 0.12);
+      background: rgba(255, 69, 58, 0.14);
+      border-color: rgba(255, 69, 58, 0.3);
     }
 
     /* Smart TV Card */
@@ -438,18 +506,29 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     .tv-status-badge {
       font-size: 11px;
       font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 6px;
+      padding: 4px 9px;
+      border-radius: 7px;
       white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      border: 1px solid transparent;
     }
-    .tv-online { background: rgba(48, 209, 88, 0.15); color: var(--green); }
-    .tv-offline { background: rgba(255, 255, 255, 0.06); color: var(--text-muted); }
+    .tv-online {
+      background: rgba(48, 209, 88, 0.15);
+      border-color: rgba(48, 209, 88, 0.3);
+      color: var(--green);
+    }
+    .tv-offline {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+    }
 
     /* Primary Action Button */
     .btn-primary {
-      background: var(--blue);
+      background: linear-gradient(180deg, #0A84FF 0%, #0071E3 100%);
       color: #FFFFFF;
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 14px;
       padding: 15px 20px;
       font-size: 15px;
@@ -460,36 +539,39 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 9px;
       font-family: inherit;
-      box-shadow: 0 4px 16px rgba(10, 132, 255, 0.3);
-      transition: background 0.15s, transform 0.05s;
+      box-shadow: 0 4px 18px rgba(10, 132, 255, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+      transition: all 0.2s var(--ease-spring);
     }
 
     .btn-primary:hover {
-      background: var(--blue-hover);
+      background: linear-gradient(180deg, #1C8DFF 0%, #007AFF 100%);
+      box-shadow: 0 6px 24px rgba(10, 132, 255, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+      transform: translateY(-1px);
     }
 
     .btn-primary:active {
-      transform: scale(0.99);
+      transform: scale(0.985);
+      box-shadow: 0 2px 10px rgba(10, 132, 255, 0.25);
     }
 
-    /* Cupertino In-UI Glassmorphic Modal Dialog */
+    /* In-UI Glassmorphic Modal Dialog */
     .modal-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 1000;
       padding: 20px;
-      animation: modalFadeIn 0.18s ease-out;
+      animation: modalFadeIn 0.2s var(--ease-spring);
     }
 
     @keyframes modalFadeIn {
@@ -498,17 +580,17 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     }
 
     .modal-box {
-      background: #1C1C1E;
+      background: #141418;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 20px;
+      border-radius: 22px;
       width: 100%;
       max-width: 380px;
       padding: 24px 22px 20px;
       display: flex;
       flex-direction: column;
       gap: 14px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
-      animation: modalScaleUp 0.18s ease-out;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+      animation: modalScaleUp 0.22s var(--ease-spring);
     }
 
     @keyframes modalScaleUp {
@@ -531,8 +613,8 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     }
 
     .modal-input {
-      background: #2C2C2E;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #1C1C22;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px;
       padding: 12px 14px;
       color: #FFFFFF;
@@ -540,10 +622,13 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       font-family: inherit;
       outline: none;
       width: 100%;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
     .modal-input:focus {
       border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.4);
     }
 
     .modal-actions {
@@ -554,38 +639,42 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
     .modal-btn {
       flex: 1;
-      border: none;
+      border: 1px solid transparent;
       border-radius: 12px;
       padding: 12px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       font-family: inherit;
-      transition: background 0.15s;
+      transition: background 0.15s, transform 0.05s;
     }
 
     .modal-btn-cancel {
-      background: #2C2C2E;
+      background: #24242A;
+      border-color: rgba(255, 255, 255, 0.08);
       color: #FFFFFF;
     }
     .modal-btn-cancel:hover {
-      background: #3A3A3C;
+      background: #32323A;
     }
 
     .modal-btn-danger {
       background: var(--red);
       color: #FFFFFF;
+      box-shadow: 0 2px 12px rgba(255, 69, 58, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
     .modal-btn-danger:hover {
       background: #E0352A;
     }
 
     .modal-btn-primary {
-      background: var(--blue);
+      background: linear-gradient(180deg, #0A84FF 0%, #0071E3 100%);
       color: #FFFFFF;
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow: 0 2px 12px rgba(10, 132, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     }
     .modal-btn-primary:hover {
-      background: var(--blue-hover);
+      background: linear-gradient(180deg, #1C8DFF 0%, #007AFF 100%);
     }
 
     /* QR Code Display in Modal */
@@ -599,7 +688,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     .qr-image-frame {
       background: #FFFFFF;
       padding: 12px;
-      border-radius: 16px;
+      border-radius: 18px;
       width: 186px;
       height: 186px;
       display: flex;
@@ -608,6 +697,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       color: #1C1C1E;
       font-size: 12px;
       text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
 
     .qr-image-frame img {
@@ -617,30 +707,32 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     }
 
     .qr-address-badge {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-family: var(--font-mono);
       font-size: 13px;
       color: var(--green);
       background: rgba(48, 209, 88, 0.1);
-      border: 1px solid rgba(48, 209, 88, 0.25);
+      border: 1px solid rgba(48, 209, 88, 0.28);
       padding: 6px 14px;
       border-radius: 8px;
       user-select: all;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
     }
 
-    /* Apple Pill Toast Notification */
+    /* Pill Toast Notification */
     .toast-pill {
       position: fixed;
       bottom: 24px;
-      background: rgba(28, 28, 30, 0.96);
+      background: rgba(22, 22, 26, 0.94);
       border: 1px solid rgba(255, 255, 255, 0.15);
       color: #FFFFFF;
       font-size: 13px;
       font-weight: 500;
       padding: 10px 18px;
       border-radius: 999px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -648,7 +740,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       opacity: 0;
       transform: translateY(20px);
       pointer-events: none;
-      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.25s var(--ease-spring), transform 0.25s var(--ease-spring);
     }
 
     .toast-pill.visible {
@@ -663,6 +755,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       color: var(--text-muted);
       margin-top: 6px;
       line-height: 1.5;
+      letter-spacing: 0.2px;
     }
   </style>
 </head>
@@ -674,7 +767,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     <div class="nav-bar">
       <div class="nav-brand">
         <div class="brand-icon" aria-hidden="true">
-          <svg width="30" height="30" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <svg width="32" height="32" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
             <rect x="0" y="0" width="512" height="512" rx="120" fill="#14141A"/>
             <circle cx="204" cy="256" r="118" fill="none" stroke="#0A84FF" stroke-width="44"/>
             <circle cx="308" cy="256" r="118" fill="none" stroke="#BF5AF2" stroke-width="44"/>
@@ -760,7 +853,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     <div class="card tv-card" id="tvCardContainer">
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <div class="device-icon-badge badge-tv" style="width: 30px; height: 30px; border-radius: 8px;">
+          <div class="device-icon-badge badge-tv" style="width: 32px; height: 32px; border-radius: 9px;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="4" width="20" height="14" rx="2"></rect>
               <line x1="8" y1="21" x2="16" y2="21"></line>
@@ -792,7 +885,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
   </div>
 
-  <!-- Custom Cupertino Delete Confirmation Modal -->
+  <!-- Custom Delete Confirmation Modal -->
   <div id="deleteModal" class="modal-overlay" onclick="handleBackdropClick(event, closeDeleteModal)">
     <div class="modal-box">
       <div class="modal-title">Remove Device?</div>
@@ -806,7 +899,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Custom Cupertino Rename Modal -->
+  <!-- Custom Rename Modal -->
   <div id="renameModal" class="modal-overlay" onclick="handleBackdropClick(event, closeRenameModal)">
     <div class="modal-box">
       <div class="modal-title">Rename Device</div>
@@ -821,7 +914,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Custom Cupertino Manual Smart TV Modal -->
+  <!-- Custom Manual Smart TV Modal -->
   <div id="addTvModal" class="modal-overlay" onclick="handleBackdropClick(event, closeAddTvModal)">
     <div class="modal-box">
       <div class="modal-title">Add Smart TV</div>
@@ -837,7 +930,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Custom Cupertino Pairing & Local QR Modal -->
+  <!-- Custom Pairing & Local QR Modal -->
   <div id="pairingModal" class="modal-overlay" onclick="handleBackdropClick(event, closePairingModal)">
     <div class="modal-box">
       <div class="modal-title">1-Tap Mobile Pairing</div>
@@ -858,7 +951,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Apple Pill Toast Notification -->
+  <!-- Pill Toast Notification -->
   <div id="toastPill" class="toast-pill">
     <span id="toastIcon"></span>
     <span id="toastMsg">Action complete</span>
