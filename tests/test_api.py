@@ -181,3 +181,28 @@ def test_api_export_csv_and_json(client):
     # 4. Test Invalid Format Validation
     res_invalid = client.get("/api/export?format=unsupported_format")
     assert res_invalid.status_code == 422
+
+
+def test_api_reality_card_export_components(client):
+    """Verify that the dashboard serves the Daily Reality Card HTML5 canvas and export actions."""
+    res = client.get("/")
+    assert res.status_code == 200
+    html = res.text
+
+    # 1. Action Triggers
+    assert "openRealityCardModal()" in html
+    assert "Share Card" in html
+    assert "Reality Card" in html
+
+    # 2. Modal Structure
+    assert 'id="realityCardModal"' in html
+    assert 'id="realityCardCanvas"' in html
+    assert 'width="1200"' in html
+    assert 'height="675"' in html
+
+    # 3. Client-Side Export Logic
+    assert "renderRealityCardCanvas" in html
+    assert "downloadRealityCardImage" in html
+    assert "copyRealityCardImage" in html
+    assert "OmniScreen-Reality-Card-" in html
+
