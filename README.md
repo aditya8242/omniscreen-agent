@@ -174,6 +174,8 @@ Every binary distributed in releases is cryptographically hashed and scanned acr
 - [x] Fast sweep-line interval union and fragmentation mathematics
 - [x] Idempotent local SQLite storage with WAL mode
 - [x] CSV and JSON raw session export engine with date range filtering (#3)
+- [x] Windows system tray live True Exposure tooltip and status monitor (#6)
+- [x] 1-click shareable Daily Reality Card visual export (high-DPI PNG and clipboard)
 - [ ] **OmniLock:** Open-source cross-device synchronized focus enforcement protocol
 - [ ] Native macOS (Quartz/CoreGraphics) foreground agent
 - [ ] Native Linux (X11/Wayland) foreground agent

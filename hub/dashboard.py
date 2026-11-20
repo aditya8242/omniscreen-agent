@@ -748,6 +748,32 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       transform: translateY(0);
     }
 
+    .nav-btn-share {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #FFFFFF;
+      padding: 6px 14px;
+      border-radius: 980px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .nav-btn-share:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    .modal-btn-secondary {
+      background: #2C2C34;
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #FFFFFF;
+    }
+    .modal-btn-secondary:hover {
+      background: #3A3A44;
+    }
+
     /* Footer */
     .footer-note {
       text-align: center;
@@ -776,9 +802,12 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         </div>
         <div class="nav-title">OmniScreen Reality</div>
       </div>
-      <div id="hubStatusPill" class="live-status-pill">
-        <span class="pulse-dot"></span>
-        <span id="hubStatusText">Live Sync</span>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button class="nav-btn-share" onclick="openRealityCardModal()" title="Export shareable Daily Reality Card">Share Card</button>
+        <div id="hubStatusPill" class="live-status-pill">
+          <span class="pulse-dot"></span>
+          <span id="hubStatusText">Live Sync</span>
+        </div>
       </div>
     </div>
 
@@ -833,6 +862,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     <div class="section-title-row">
       <div class="section-title">Connected Devices</div>
       <div class="section-actions">
+        <a class="text-action-link" onclick="openRealityCardModal()" title="Export shareable Daily Reality Card">Reality Card</a>
         <a class="text-action-link" href="/api/export?format=csv" download title="Export all session history as CSV">Export CSV</a>
         <a class="text-action-link" onclick="openPairingModal()">+ Pair Mobile</a>
       </div>
@@ -885,7 +915,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     <div class="footer-note">
       OmniScreen Reality Hub &bull; Local Wi-Fi Network &bull; Zero External Telemetry<br>
       <span style="display: inline-block; margin-top: 5px; opacity: 0.85;">
-        Export Session History: <a href="/api/export?format=csv" download style="color: var(--blue); text-decoration: none; font-weight: 600;">CSV</a> &bull; <a href="/api/export?format=json" download style="color: var(--blue); text-decoration: none; font-weight: 600;">JSON</a>
+        Export: <a href="javascript:void(0)" onclick="openRealityCardModal()" style="color: var(--blue); text-decoration: none; font-weight: 600;">Reality Card</a> &bull; <a href="/api/export?format=csv" download style="color: var(--blue); text-decoration: none; font-weight: 600;">CSV</a> &bull; <a href="/api/export?format=json" download style="color: var(--blue); text-decoration: none; font-weight: 600;">JSON</a>
       </span>
     </div>
 
@@ -957,6 +987,24 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- Custom Daily Reality Card Modal -->
+  <div id="realityCardModal" class="modal-overlay" onclick="handleBackdropClick(event, closeRealityCardModal)">
+    <div class="modal-box" style="max-width: 580px; padding: 22px;">
+      <div class="modal-title">Daily Reality Card</div>
+      <div class="modal-desc">
+        Your verified cross-device screen time summary for today. Download or copy as an image:
+      </div>
+      <div style="width: 100%; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 10px 30px rgba(0,0,0,0.6); margin: 8px 0 12px; background: #0D0D11;">
+        <canvas id="realityCardCanvas" width="1200" height="675" style="width: 100%; height: auto; display: block;"></canvas>
+      </div>
+      <div class="modal-actions" style="margin-top: 4px;">
+        <button class="modal-btn modal-btn-cancel" onclick="closeRealityCardModal()">Close</button>
+        <button class="modal-btn modal-btn-secondary" id="btnCopyCard" onclick="copyRealityCardImage()">Copy Image</button>
+        <button class="modal-btn modal-btn-primary" id="btnDownloadCard" onclick="downloadRealityCardImage()">Download PNG</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Pill Toast Notification -->
   <div id="toastPill" class="toast-pill">
     <span id="toastIcon"></span>
@@ -970,6 +1018,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     let currentLanIp = "127.0.0.1:8765";
     let localPcId = "";
     let devicesById = {};
+    let latestRealityData = null;
     let toastTimer = null;
 
     const SVG_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
@@ -1051,6 +1100,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     }
 
     function renderReality(data) {
+      latestRealityData = data;
       document.getElementById("heroTime").innerText = data.true_exposure_formatted || "0m";
       const count = data.device_count || 0;
       document.getElementById("heroSub").innerText = `Interval union across ${count} active device${count === 1 ? '' : 's'} today`;
@@ -1359,6 +1409,199 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           }
         }
       } catch (e) {}
+    }
+
+    function openRealityCardModal() {
+      const modal = document.getElementById("realityCardModal");
+      if (modal) {
+        modal.style.display = "flex";
+        renderRealityCardCanvas();
+      }
+    }
+
+    function closeRealityCardModal() {
+      const modal = document.getElementById("realityCardModal");
+      if (modal) {
+        modal.style.display = "none";
+      }
+    }
+
+    function renderRealityCardCanvas() {
+      const canvas = document.getElementById("realityCardCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const W = 1200;
+      const H = 675;
+
+      // 1. Dark obsidian background
+      ctx.fillStyle = "#0D0D12";
+      ctx.fillRect(0, 0, W, H);
+
+      // Subtle atmospheric top glow
+      const grad = ctx.createRadialGradient(W / 2, 0, 10, W / 2, 0, 560);
+      grad.addColorStop(0, "rgba(10, 132, 255, 0.20)");
+      grad.addColorStop(0.5, "rgba(191, 90, 242, 0.08)");
+      grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Perimeter border
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.10)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(24, 24, W - 48, H - 48);
+
+      // 2. Header: Logo & Branding
+      const rx = 72, ry = 72;
+      ctx.lineWidth = 5;
+      // Blue ring
+      ctx.strokeStyle = "#0A84FF";
+      ctx.beginPath();
+      ctx.arc(rx, ry, 18, 0, Math.PI * 2);
+      ctx.stroke();
+      // Purple ring
+      ctx.strokeStyle = "#BF5AF2";
+      ctx.beginPath();
+      ctx.arc(rx + 20, ry, 18, 0, Math.PI * 2);
+      ctx.stroke();
+      // Center green dot
+      ctx.fillStyle = "#30D158";
+      ctx.beginPath();
+      ctx.arc(rx + 10, ry, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Brand Title
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillText("OmniScreen Reality", rx + 50, ry + 9);
+
+      // Date string
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "short", day: "numeric" });
+      ctx.fillStyle = "#8E8E93";
+      ctx.font = "500 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText(dateStr, W - 72, ry + 7);
+      ctx.textAlign = "left";
+
+      // Top divider
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(72, 120);
+      ctx.lineTo(W - 72, 120);
+      ctx.stroke();
+
+      // 3. Hero True Exposure
+      const data = latestRealityData || {};
+      const trueTime = data.true_exposure_formatted || (document.getElementById("heroTime") ? document.getElementById("heroTime").innerText : "0m");
+      const rawTime = data.raw_total_formatted || (document.getElementById("metricRaw") ? document.getElementById("metricRaw").innerText : "0m");
+      const overlapTime = data.second_screening_formatted || (document.getElementById("metricOverlap") ? document.getElementById("metricOverlap").innerText : "0m");
+      const ssiVal = data.ssi_percent !== undefined ? data.ssi_percent : (document.getElementById("ssiBadge") ? parseFloat(document.getElementById("ssiBadge").innerText) || 0 : 0);
+      const ssiStatus = data.ssi_status || "Optimal Focus";
+      const ssiColor = data.ssi_color || "#30D158";
+
+      ctx.fillStyle = "#8E8E93";
+      ctx.font = "600 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillText("TRUE COMBINED SCREEN EXPOSURE (INTERVAL UNION)", 72, 168);
+
+      // Hero Number
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 82px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillText(trueTime, 72, 256);
+
+      // Subtitle
+      ctx.fillStyle = "#636366";
+      ctx.font = "400 17px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      const devCount = data.device_count || (data.devices ? data.devices.length : 1);
+      const devLabel = devCount === 1 ? "1 active device" : `${devCount} active devices`;
+      ctx.fillText(`Measured as the Lebesgue union of activity across ${devLabel}`, 72, 296);
+
+      // 4. Metric Comparison Boxes (3 columns)
+      const colY = 340;
+      const colH = 150;
+      const colW = (W - 144 - 36) / 3;
+
+      function drawCard(x, label, value, sub, valColor, borderGlow) {
+        ctx.fillStyle = "rgba(22, 22, 28, 0.72)";
+        ctx.fillRect(x, colY, colW, colH);
+        ctx.strokeStyle = borderGlow || "rgba(255, 255, 255, 0.08)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, colY, colW, colH);
+
+        ctx.fillStyle = "#8E8E93";
+        ctx.font = "600 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillText(label.toUpperCase(), x + 24, colY + 34);
+
+        ctx.fillStyle = valColor || "#FFFFFF";
+        ctx.font = "bold 36px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillText(value, x + 24, colY + 88);
+
+        ctx.fillStyle = "#636366";
+        ctx.font = "400 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        ctx.fillText(sub, x + 24, colY + 122);
+      }
+
+      // Col 1: Naive Raw Sum
+      drawCard(72, "Naive Screen Sum", rawTime, "Scalar sum across all screens", "#8E8E93");
+
+      // Col 2: Second-Screening Overlap
+      drawCard(72 + colW + 18, "Second-Screening", overlapTime, "Concurrent multi-screen overlap", "#FF9F0A", "rgba(255, 159, 10, 0.28)");
+
+      // Col 3: Attention Index (SSI)
+      drawCard(72 + (colW + 18) * 2, "Attention Index (SSI)", `${Number(ssiVal).toFixed(1)}%`, ssiStatus, ssiColor, `${ssiColor}33`);
+
+      // 5. Monitored Devices & Verification Footer
+      const botY = 540;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+      ctx.beginPath();
+      ctx.moveTo(72, botY);
+      ctx.lineTo(W - 72, botY);
+      ctx.stroke();
+
+      const devices = (data.devices || []).map(d => d.display_name || d.device_type || "Device");
+      const devStr = devices.length > 0 ? devices.join("  •  ") : "Windows PC";
+      ctx.fillStyle = "#8E8E93";
+      ctx.font = "500 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.fillText("Monitored: " + devStr, 72, botY + 46);
+
+      ctx.fillStyle = "#48484A";
+      ctx.font = "500 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText("Local-First • Zero Cloud • github.com/aditya8242/omniscreen-agent", W - 72, botY + 46);
+      ctx.textAlign = "left";
+    }
+
+    function downloadRealityCardImage() {
+      const canvas = document.getElementById("realityCardCanvas");
+      if (!canvas) return;
+      const link = document.createElement("a");
+      const today = new Date().toISOString().slice(0, 10);
+      link.download = `OmniScreen-Reality-Card-${today}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      showToast("Reality Card downloaded.");
+    }
+
+    function copyRealityCardImage() {
+      const canvas = document.getElementById("realityCardCanvas");
+      if (!canvas) return;
+      if (!navigator.clipboard || typeof ClipboardItem === "undefined") {
+        showToast("Clipboard copy not supported in this browser. Use Download instead.", true);
+        return;
+      }
+      canvas.toBlob(blob => {
+        if (!blob) {
+          showToast("Could not generate image blob.", true);
+          return;
+        }
+        navigator.clipboard.write([
+          new ClipboardItem({ "image/png": blob })
+        ]).then(() => {
+          showToast("Reality Card copied to clipboard.");
+        }).catch(() => {
+          showToast("Clipboard write permission denied. Use Download instead.", true);
+        });
+      }, "image/png");
     }
 
     function escapeHtml(str) {
