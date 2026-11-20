@@ -1,7 +1,10 @@
 import sys
+import time
 import logging
-from typing import Callable, Optional
+import threading
+from typing import Callable, Optional, Dict, Any
 from PIL import Image, ImageDraw
+import requests
 
 from hub.paths import is_frozen, get_bundle_assets_dir, get_user_data_dir
 
@@ -94,17 +97,65 @@ class OmniScreenTray:
     """
     Native Windows System Tray controller.
     Keeps OmniScreen Reality Hub + Win32 PC tracking alive silently in the background
-    when the user closes the dashboard window, with 1-click reopen, startup toggle, and clean quit.
+    when the user closes the dashboard window, with live metrics tooltip, startup toggle, and clean quit.
     """
 
     def __init__(
         self,
         on_open_dashboard: Callable[[], None],
         on_quit: Callable[[], None],
+        hub_url: str = "http://127.0.0.1:8765",
+        refresh_interval_sec: float = 15.0,
     ):
         self._on_open_dashboard = on_open_dashboard
         self._on_quit = on_quit
+        self._hub_url = hub_url.rstrip("/")
+        self._refresh_interval_sec = refresh_interval_sec
         self._icon = None
+        self._latest_stats: Optional[Dict[str, Any]] = None
+        self._running = False
+        self._worker_thread: Optional[threading.Thread] = None
+
+    def _fetch_stats(self) -> Optional[Dict[str, Any]]:
+        try:
+            res = requests.get(f"{self._hub_url}/api/reality", timeout=1.5)
+            if res.status_code == 200:
+                return res.json()
+        except Exception:
+            pass
+        return None
+
+    def _format_tooltip(self, stats: Optional[Dict[str, Any]] = None) -> str:
+        s = stats or self._latest_stats
+        if not s or "true_exposure_formatted" not in s:
+            return "OmniScreen Reality Hub (Active)"
+        exposure = s.get("true_exposure_formatted", "0m")
+        count = s.get("device_count", 1)
+        device_str = f"{count} device" if count == 1 else f"{count} devices"
+        tip = f"OmniScreen: {exposure} True Exposure ({device_str})"
+        return tip[:127]
+
+    def _format_menu_status(self, stats: Optional[Dict[str, Any]] = None) -> str:
+        s = stats or self._latest_stats
+        if not s or "true_exposure_formatted" not in s:
+            return "Today: Calculating Reality..."
+        exposure = s.get("true_exposure_formatted", "0m")
+        overlap = s.get("second_screening_formatted", "0m")
+        return f"Today: {exposure} True Exposure ({overlap} Overlap)"
+
+    def _stats_update_worker(self):
+        time.sleep(1.5)
+        while self._running:
+            stats = self._fetch_stats()
+            if stats:
+                self._latest_stats = stats
+                if self._icon:
+                    try:
+                        self._icon.title = self._format_tooltip(stats)
+                        self._icon.update_menu()
+                    except Exception:
+                        pass
+            time.sleep(self._refresh_interval_sec)
 
     def _toggle_autostart(self, icon, item):
         current = is_autostart_enabled()
@@ -119,10 +170,7 @@ class OmniScreenTray:
 
     def _handle_quit(self, icon, item):
         self._on_quit()
-        try:
-            icon.stop()
-        except Exception:
-            pass
+        self.stop()
 
     def run_blocking(self) -> bool:
         try:
@@ -132,6 +180,8 @@ class OmniScreenTray:
             return False
 
         menu = pystray.Menu(
+            pystray.MenuItem(lambda item: self._format_menu_status(), action=None, enabled=False),
+            pystray.Menu.SEPARATOR,
             pystray.MenuItem("Open OmniScreen Dashboard", self._handle_open, default=True),
             pystray.MenuItem(
                 "Start with Windows",
@@ -142,16 +192,23 @@ class OmniScreenTray:
             pystray.MenuItem("Quit OmniScreen", self._handle_quit),
         )
 
+        initial_title = self._format_tooltip()
         self._icon = pystray.Icon(
             name="OmniScreen",
             icon=_load_tray_image(),
-            title="OmniScreen Reality Hub (Active)",
+            title=initial_title,
             menu=menu,
         )
+
+        self._running = True
+        self._worker_thread = threading.Thread(target=self._stats_update_worker, daemon=True)
+        self._worker_thread.start()
+
         self._icon.run()
         return True
 
     def stop(self):
+        self._running = False
         if self._icon:
             try:
                 self._icon.stop()
