@@ -199,6 +199,7 @@ def test_autostart_registry_operations(monkeypatch):
 
 def test_ensure_default_autostart_once(tmp_path, monkeypatch):
     """Verify first-run autostart initialization creates marker file and only runs once."""
+    monkeypatch.setattr("sys.platform", "win32")
     monkeypatch.setattr("hub.tray.is_frozen", lambda: True)
     monkeypatch.setattr("hub.tray.get_user_data_dir", lambda: tmp_path)
     mock_set = MagicMock(return_value=True)
