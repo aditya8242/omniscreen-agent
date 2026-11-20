@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://github.com/aditya8242/omniscreen-agent/releases/latest"><img src="https://img.shields.io/github/v/release/aditya8242/omniscreen-agent?color=0A84FF&label=Release" alt="Latest Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-30D158.svg" alt="License: GPL-3.0"></a>
-  <a href="https://github.com/aditya8242/omniscreen-agent/actions"><img src="https://img.shields.io/github/actions/workflow/status/aditya8242/omniscreen-agent/ci.yml?branch=master&label=CI" alt="Build Status"></a>
+  <a href="https://github.com/aditya8242/omniscreen-agent/actions"><img src="https://img.shields.io/github/actions/workflow/status/aditya8242/omniscreen-agent/test_hub.yml?branch=master&label=CI" alt="Build Status"></a>
   <a href="https://getomniscreen.vercel.app"><img src="https://img.shields.io/badge/Website-getomniscreen.vercel.app-0A84FF" alt="Live Website"></a>
   <a href="https://www.virustotal.com/gui/file/30e6e335686682a15d28e7228a193bab2b833a39e9efb6d905389e5a98c4520f/detection"><img src="https://img.shields.io/badge/VirusTotal-Verified%20Clean-30D158" alt="VirusTotal Verified Clean"></a>
 </p>
