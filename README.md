@@ -80,6 +80,7 @@ Pre-compiled standalone binaries are available directly on the [**Latest GitHub 
 - **Zero Fake Data:** No simulated profiles, synthetic seed records, or guesswork. Telemetry derives strictly from operating system kernel events.
 - **Local Network Isolation:** Synchronization occurs directly between devices on your local Wi-Fi network (or mobile hotspot) over LAN HTTP. No data ever leaves your room.
 - **Host-Locked Administration:** Destructive API routes (device removal, database purge, TV scans, hub shutdown) are cryptographically restricted to `127.0.0.1` with strict CORS enforcement.
+- **Full Data Portability:** Download your entire cross-device session history in RFC 4180 CSV or structured JSON anytime via the dashboard or `/api/export`.
 
 ---
 
@@ -172,6 +173,7 @@ Every binary distributed in releases is cryptographically hashed and scanned acr
 - [x] SSDP Multicast and local port Smart TV presence sensor
 - [x] Fast sweep-line interval union and fragmentation mathematics
 - [x] Idempotent local SQLite storage with WAL mode
+- [x] CSV and JSON raw session export engine with date range filtering (#3)
 - [ ] **OmniLock:** Open-source cross-device synchronized focus enforcement protocol
 - [ ] Native macOS (Quartz/CoreGraphics) foreground agent
 - [ ] Native Linux (X11/Wayland) foreground agent
