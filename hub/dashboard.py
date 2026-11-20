@@ -832,7 +832,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     <!-- 5. Connected Devices Section -->
     <div class="section-title-row">
       <div class="section-title">Connected Devices</div>
-      <a class="text-action-link" onclick="openPairingModal()">+ Pair Mobile</a>
+      <div class="section-actions">
+        <a class="text-action-link" href="/api/export?format=csv" download title="Export all session history as CSV">Export CSV</a>
+        <a class="text-action-link" onclick="openPairingModal()">+ Pair Mobile</a>
+      </div>
     </div>
 
     <div id="deviceList" class="device-list">
@@ -880,7 +883,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
     <!-- Footer -->
     <div class="footer-note">
-      OmniScreen Reality Hub &bull; Local Wi-Fi Network &bull; Zero External Telemetry
+      OmniScreen Reality Hub &bull; Local Wi-Fi Network &bull; Zero External Telemetry<br>
+      <span style="display: inline-block; margin-top: 5px; opacity: 0.85;">
+        Export Session History: <a href="/api/export?format=csv" download style="color: var(--blue); text-decoration: none; font-weight: 600;">CSV</a> &bull; <a href="/api/export?format=json" download style="color: var(--blue); text-decoration: none; font-weight: 600;">JSON</a>
+      </span>
     </div>
 
   </div>
