@@ -187,6 +187,60 @@ def get_sessions_for_day(date_str: Optional[str] = None, db_path: Optional[str] 
     finally:
         conn.close()
 
+def get_sessions_for_date_range(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db_path: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """
+    Fetch all recorded sessions across devices within an optional [start_date, end_date] range.
+    Dates are formatted as 'YYYY-MM-DD'. If omitted, queries all available history.
+    """
+    conn = get_connection(db_path)
+    try:
+        cur = conn.cursor()
+        query = """
+            SELECT s.id, s.device_id, s.device_type, d.device_name, s.start_ts, s.end_ts, s.app_name, s.category
+            FROM sessions s
+            LEFT JOIN devices d ON s.device_id = d.device_id
+        """
+        conditions = []
+        params = []
+
+        if start_date:
+            dt_start = datetime.strptime(start_date, "%Y-%m-%d")
+            start_ts = datetime(dt_start.year, dt_start.month, dt_start.day, 0, 0, 0).timestamp()
+            conditions.append("s.end_ts >= ?")
+            params.append(start_ts)
+
+        if end_date:
+            dt_end = datetime.strptime(end_date, "%Y-%m-%d")
+            end_ts = datetime(dt_end.year, dt_end.month, dt_end.day, 23, 59, 59, 999999).timestamp()
+            conditions.append("s.start_ts <= ?")
+            params.append(end_ts)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY s.start_ts ASC"
+
+        cur.execute(query, tuple(params))
+        results = []
+        for row in cur.fetchall():
+            results.append({
+                "id": row["id"],
+                "device_id": row["device_id"],
+                "device_type": row["device_type"],
+                "device_name": row["device_name"] or row["device_id"],
+                "start_ts": row["start_ts"],
+                "end_ts": row["end_ts"],
+                "app_name": row["app_name"],
+                "category": row["category"]
+            })
+        return results
+    finally:
+        conn.close()
+
 def get_all_devices(db_path: Optional[str] = None) -> List[Dict[str, Any]]:
     conn = get_connection(db_path)
     try:

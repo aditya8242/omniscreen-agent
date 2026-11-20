@@ -125,3 +125,59 @@ def test_api_sync_and_reality(client):
 def test_api_manual_tv_validation(client):
     res_bad = client.post("/api/tv/add", json={"device_name": "Living Room", "ip_address": "not-an-ip"})
     assert res_bad.status_code == 400
+
+def test_api_export_csv_and_json(client):
+    # Seed sessions via sync
+    payload = {
+        "device_id": "export_pc_1",
+        "device_name": "Developer Machine",
+        "device_type": "pc",
+        "sessions": [
+            {"start_ts": 1731810000.0, "end_ts": 1731813600.0, "app_name": "PyCharm"},
+            {"start_ts": 1731814000.0, "end_ts": 1731815800.0, "app_name": "Chrome"}
+        ]
+    }
+    sync_res = client.post("/api/sync", json=payload)
+    assert sync_res.status_code == 200
+
+    from datetime import datetime
+    date_str = datetime.fromtimestamp(1731810000.0).strftime("%Y-%m-%d")
+
+    # 1. Test CSV Export (default format)
+    res_csv = client.get(f"/api/export?start_date={date_str}&end_date={date_str}")
+    assert res_csv.status_code == 200
+    assert "text/csv" in res_csv.headers["content-type"]
+    assert "attachment; filename=" in res_csv.headers.get("content-disposition", "")
+    lines = res_csv.text.strip().splitlines()
+    assert len(lines) == 3  # Header + 2 rows
+    assert lines[0] == "device_id,device_name,device_type,app_name,start_time,end_time,duration_seconds"
+    assert "export_pc_1,Developer Machine,pc,PyCharm" in lines[1]
+    assert "3600.0" in lines[1]
+    assert "export_pc_1,Developer Machine,pc,Chrome" in lines[2]
+    assert "1800.0" in lines[2]
+
+    # 2. Test JSON Export
+    res_json = client.get(f"/api/export?format=json&start_date={date_str}&end_date={date_str}")
+    assert res_json.status_code == 200
+    data = res_json.json()
+    assert "sessions" in data
+    assert data["count"] == 2
+    assert len(data["sessions"]) == 2
+    s1 = data["sessions"][0]
+    assert s1["device_id"] == "export_pc_1"
+    assert s1["device_name"] == "Developer Machine"
+    assert s1["device_type"] == "pc"
+    assert s1["app_name"] == "PyCharm"
+    assert s1["duration_seconds"] == 3600.0
+    assert "start_time" in s1
+    assert "end_time" in s1
+
+    # 3. Test Export with Out-of-Range Date Filter returns 0 records
+    res_empty = client.get("/api/export?format=json&start_date=2020-01-01&end_date=2020-01-02")
+    assert res_empty.status_code == 200
+    assert res_empty.json()["count"] == 0
+    assert res_empty.json()["sessions"] == []
+
+    # 4. Test Invalid Format Validation
+    res_invalid = client.get("/api/export?format=unsupported_format")
+    assert res_invalid.status_code == 422

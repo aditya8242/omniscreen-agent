@@ -2,9 +2,11 @@ import time
 import io
 import re
 import json
+import csv
 import math
 import socket
 import threading
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 import qrcode
@@ -19,6 +21,7 @@ from hub.database import (
     init_db,
     insert_sessions_idempotent,
     get_sessions_for_day,
+    get_sessions_for_date_range,
     get_day_boundaries,
     get_all_devices,
     rename_device,
@@ -422,6 +425,86 @@ def get_reality(date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"
 @app.get("/api/devices")
 def list_devices():
     return {"devices": get_all_devices()}
+
+
+@app.get("/api/export")
+def export_sessions(
+    format: str = Query("csv", pattern=r"^(?i)(csv|json)$"),
+    start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+):
+    """
+    Export raw screen time session records as CSV or JSON.
+    Allows filtering by an optional [start_date, end_date] window.
+    """
+    try:
+        sessions = get_sessions_for_date_range(start_date=start_date, end_date=end_date)
+        fmt = format.lower()
+
+        if fmt == "csv":
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow([
+                "device_id",
+                "device_name",
+                "device_type",
+                "app_name",
+                "start_time",
+                "end_time",
+                "duration_seconds",
+            ])
+            for s in sessions:
+                start_iso = datetime.fromtimestamp(s["start_ts"]).isoformat()
+                end_iso = datetime.fromtimestamp(s["end_ts"]).isoformat()
+                duration = round(s["end_ts"] - s["start_ts"], 2)
+                writer.writerow([
+                    s["device_id"],
+                    s["device_name"],
+                    s["device_type"],
+                    s["app_name"],
+                    start_iso,
+                    end_iso,
+                    duration,
+                ])
+
+            filename = f"omniscreen_sessions_{start_date or 'all'}_to_{end_date or 'all'}.csv"
+            return Response(
+                content=output.getvalue(),
+                media_type="text/csv",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+            )
+
+        elif fmt == "json":
+            export_data = []
+            for s in sessions:
+                start_iso = datetime.fromtimestamp(s["start_ts"]).isoformat()
+                end_iso = datetime.fromtimestamp(s["end_ts"]).isoformat()
+                duration = round(s["end_ts"] - s["start_ts"], 2)
+                export_data.append({
+                    "id": s["id"],
+                    "device_id": s["device_id"],
+                    "device_name": s["device_name"],
+                    "device_type": s["device_type"],
+                    "app_name": s["app_name"],
+                    "category": s["category"],
+                    "start_ts": s["start_ts"],
+                    "end_ts": s["end_ts"],
+                    "start_time": start_iso,
+                    "end_time": end_iso,
+                    "duration_seconds": duration,
+                })
+            return {
+                "sessions": export_data,
+                "count": len(export_data),
+                "start_date": start_date,
+                "end_date": end_date,
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Invalid export format. Supported formats: csv, json")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to export session records: {str(e)}")
 
 
 @app.post("/api/device/rename", dependencies=[Depends(require_localhost)])

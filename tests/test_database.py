@@ -108,3 +108,42 @@ def test_database_deduplicates_reinstalled_mobile(temp_db):
     assert len(rows) == 2
     assert all(r["device_id"] == "android_new22222" for r in rows)
     assert [r["app_name"] for r in rows] == ["Instagram", "Instagram"]
+
+def test_database_get_sessions_for_date_range(temp_db):
+    from hub.database import get_sessions_for_date_range
+
+    # Insert sessions across 3 days: 2024-11-15, 2024-11-16, 2024-11-17
+    # 2024-11-15 12:00:00 UTC = 1731672000
+    # 2024-11-16 12:00:00 UTC = 1731758400
+    # 2024-11-17 12:00:00 UTC = 1731844800
+    from datetime import datetime
+    dt1 = datetime(2024, 11, 15, 10, 0, 0)
+    dt2 = datetime(2024, 11, 16, 10, 0, 0)
+    dt3 = datetime(2024, 11, 17, 10, 0, 0)
+
+    insert_sessions_idempotent(
+        device_id="pc_export_test",
+        device_name="Work PC",
+        device_type="pc",
+        sessions=[
+            {"start_ts": dt1.timestamp(), "end_ts": dt1.timestamp() + 3600, "app_name": "Slack"},
+            {"start_ts": dt2.timestamp(), "end_ts": dt2.timestamp() + 1800, "app_name": "VS Code"},
+            {"start_ts": dt3.timestamp(), "end_ts": dt3.timestamp() + 7200, "app_name": "Terminal"},
+        ],
+        db_path=temp_db
+    )
+
+    # Query all
+    all_sessions = get_sessions_for_date_range(db_path=temp_db)
+    assert len(all_sessions) == 3
+
+    # Query range: 2024-11-15 to 2024-11-16
+    filtered = get_sessions_for_date_range(start_date="2024-11-15", end_date="2024-11-16", db_path=temp_db)
+    assert len(filtered) == 2
+    assert [s["app_name"] for s in filtered] == ["Slack", "VS Code"]
+
+    # Query single day range
+    single_day = get_sessions_for_date_range(start_date="2024-11-17", end_date="2024-11-17", db_path=temp_db)
+    assert len(single_day) == 1
+    assert single_day[0]["app_name"] == "Terminal"
+    assert single_day[0]["device_name"] == "Work PC"
